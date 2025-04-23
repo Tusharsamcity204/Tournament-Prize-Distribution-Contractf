@@ -1,0 +1,34 @@
+
+pragma solidity ^0.8.0;
+
+contract TournamentPrizeDistribution {
+    address public owner;
+    address[] public winners;
+    uint256 public totalPrize;
+
+    constructor() payable {
+        owner = msg.sender;
+        totalPrize = msg.value;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not authorized");
+        _;
+    }
+
+    function setWinners(address[] memory _winners) external onlyOwner {
+        require(_winners.length > 0, "Winners required");
+        winners = _winners;
+    }
+
+    function distributePrize() external onlyOwner {
+        require(winners.length > 0, "Winners not set");
+        uint256 share = totalPrize / winners.length;
+
+        for (uint i = 0; i < winners.length; i++) {
+            payable(winners[i]).transfer(share);
+        }
+
+        totalPrize = 0;
+    }
+}
