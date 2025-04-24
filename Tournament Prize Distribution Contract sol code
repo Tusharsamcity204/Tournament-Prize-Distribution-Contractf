@@ -1,14 +1,17 @@
 
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract TournamentPrizeDistribution {
     address public owner;
     address[] public winners;
     uint256 public totalPrize;
+    bool public prizeDistributed;
 
     constructor() payable {
         owner = msg.sender;
         totalPrize = msg.value;
+        prizeDistributed = false;
     }
 
     modifier onlyOwner() {
@@ -16,13 +19,21 @@ contract TournamentPrizeDistribution {
         _;
     }
 
+    // Add more funds to the prize pool
+    function depositMorePrize() external payable onlyOwner {
+        require(msg.value > 0, "No ether sent");
+        totalPrize += msg.value;
+    }
+
     function setWinners(address[] memory _winners) external onlyOwner {
         require(_winners.length > 0, "Winners required");
+        require(!prizeDistributed, "Prizes already distributed");
         winners = _winners;
     }
 
     function distributePrize() external onlyOwner {
         require(winners.length > 0, "Winners not set");
+        require(!prizeDistributed, "Prizes already distributed");
         uint256 share = totalPrize / winners.length;
 
         for (uint i = 0; i < winners.length; i++) {
@@ -30,5 +41,32 @@ contract TournamentPrizeDistribution {
         }
 
         totalPrize = 0;
+        prizeDistributed = true;
+    }
+
+    // Get number of winners
+    function getWinnersCount() external view returns (uint256) {
+        return winners.length;
+    }
+
+    // View contract's current balance
+    function getContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    // Withdraw leftover balance by owner (if any)
+    function withdrawLeftover() external onlyOwner {
+        require(prizeDistributed, "Distribute prize first");
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to withdraw");
+        payable(owner).transfer(balance);
+    }
+
+    // Reset contract for new tournament (optional)
+    function resetTournament() external onlyOwner {
+        require(prizeDistributed, "Distribute current prize first");
+        delete winners;
+        prizeDistributed = false;
+        totalPrize = address(this).balance;
     }
 }
